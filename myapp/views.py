@@ -52,3 +52,37 @@ def last_30_days_page_cached_locks(request, *args, **kwargs):
         context={
             "slow_views": slow_views
         })
+
+
+def last_30_days_page_v3(request, *args, **kwargs):
+    slow_views = cache.get("last_30_days")
+    last_30_days_working = cache.get("last_30_days_working")
+    if slow_views is None and not last_30_days_working:
+        current_app.send_task(
+            "generate_last_30_days_v3",
+            queue="default",
+            ignore_result=True)
+    return render(
+        request,
+        template_name="myapp/last_30_days_report_cached.html",
+        context={
+            "slow_views": slow_views
+        })
+
+
+def last_30_days_page_v4(request, *args, **kwargs):
+    slow_views = cache.get("last_30_days")
+    last_30_days_task_sent = cache.get("last_30_days_task_sent")
+    last_30_days_working = cache.get("last_30_days_working")
+    if slow_views is None and not last_30_days_working and not last_30_days_task_sent:
+        cache.set("last_30_days_task_sent", 1, 60)
+        current_app.send_task(
+            "generate_last_30_days_v4",
+            queue="default",
+            ignore_result=True)
+    return render(
+        request,
+        template_name="myapp/last_30_days_report_cached.html",
+        context={
+            "slow_views": slow_views
+        })
